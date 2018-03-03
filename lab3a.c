@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include
 #include "ext2_fs.h"
 
 #define BUFF_SIZE 2048
@@ -15,12 +16,12 @@ void superblock_summary(void)
   toRead = pread(ext2fd, buffer, toRead, superblock_offset);
   if (toRead < 0)
     {
+      fprintf(stderr, "hello");
       //systemCallError
     }
   ext2_super_block* superblock_ptr;
   superblock_ptr = buffer;
   printf("block count: %d", superblock_ptr->s_blocks_count);
-  exit(1)
 }
 
 void group_summary(void) 
