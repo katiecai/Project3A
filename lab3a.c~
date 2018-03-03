@@ -71,7 +71,7 @@ void group_summary(void)
   // inode number of free block bitmap
   printf("%d,", group_pointer->bg_inode_bitmap);
   inodes_bitmap = group_pointer->bg_inode_bitmap;
-  printf("%d," group_pointer->bg_inode_table);
+  printf("%d\n", group_pointer->bg_inode_table);
 }
 
 int main(int argc, char* argv[])

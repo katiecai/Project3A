@@ -9,6 +9,7 @@
 
 int ext2fd; //file descriptor for disk image
 char buffer[BUFF_SIZE];
+int block_size;
 int inode_count;
 int block_count;
 int blocks_bitmap;
@@ -34,6 +35,7 @@ void superblock_summary(void)
   inode_count = superblock_ptr->s_inodes_count;
   //block size
   printf("%d,", 1024 << superblock_ptr->s_log_block_size);
+  block_size = superblock_ptr->s_log_block_size;
   //inode size
   printf("%d,", superblock_ptr->s_inode_size);
   //blocks per group
@@ -72,6 +74,11 @@ void group_summary(void)
   printf("%d,", group_pointer->bg_inode_bitmap);
   inodes_bitmap = group_pointer->bg_inode_bitmap;
   printf("%d\n", group_pointer->bg_inode_table);
+}
+
+void free_inodes(void)
+{
+  
 }
 
 int main(int argc, char* argv[])
