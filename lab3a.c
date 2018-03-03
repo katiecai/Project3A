@@ -17,6 +17,9 @@ void superblock_summary(void)
     {
       //systemCallError
     }
+  ext2_super_block* superblock_ptr;
+  superblock_ptr = buffer;
+  printf("block count: %d", superblock_ptr->s_blocks_count);
 }
 
 void group_summary(void) 
