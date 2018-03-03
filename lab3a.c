@@ -101,6 +101,7 @@ void free_inodes(void)
 	  printf("IFREE, %d\n", inode_ctr);
 	  free_inodes++;
 	}
+      inode_ctr++;
     }  
   free(bitmap);
 }
