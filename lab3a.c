@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdint.h>
 #include "ext2_fs.h"
 
 #define BUFF_SIZE 2048
@@ -35,7 +36,7 @@ void superblock_summary(void)
   inode_count = superblock_ptr->s_inodes_count;
   //block size
   printf("%d,", 1024 << superblock_ptr->s_log_block_size);
-  block_size = superblock_ptr->s_log_block_size;
+  block_size = 1024 << (superblock_ptr->s_log_block_size);
   //inode size
   printf("%d,", superblock_ptr->s_inode_size);
   //blocks per group
@@ -70,15 +71,38 @@ void group_summary(void)
   // block number of free block bitmap
   printf("%d,", group_pointer->bg_block_bitmap);
   blocks_bitmap = group_pointer->bg_block_bitmap;
-  // inode number of free block bitmap
+  // block number of the free inode bitmap
   printf("%d,", group_pointer->bg_inode_bitmap);
   inodes_bitmap = group_pointer->bg_inode_bitmap;
+  // block number of the inode table
   printf("%d\n", group_pointer->bg_inode_table);
 }
 
 void free_inodes(void)
 {
-  
+  uint8_t *bitmap = malloc(block_size);
+  int toRead = pread(ext2fd, bitmap, block_size, block_size * (inodes_bitmap)); 
+  if (toRead < 0)
+    {
+      fprintf(stderr, "Error!");
+      // system call error function
+    }
+  uint32_t bitmap_size = inode_count;
+  uint32_t bit_num;
+  int inode_ctr = 0;
+  int free_inodes = 0;
+
+
+  for (bit_num = 0; bit_num < bitmap_size; bit_num++)
+    {
+      uint8_t a_byte = bitmap[bit_num / 8];
+      if (!(a_byte & (1 << (bit_num % 8))))
+	{
+	  printf("IFREE, %d\n", inode_ctr);
+	  free_inodes++;
+	}
+    }  
+  free(bitmap);
 }
 
 int main(int argc, char* argv[])
@@ -97,5 +121,6 @@ int main(int argc, char* argv[])
     }
   superblock_summary();
   group_summary();
+  free_inodes();
   return 0;
 }
