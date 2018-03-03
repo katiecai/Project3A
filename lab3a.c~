@@ -19,10 +19,6 @@ void superblock_summary(void)
     }
 }
 
-void group_summary(void) 
-{
-  
-}
 
 int main(int argc, char* argv[])
 {
