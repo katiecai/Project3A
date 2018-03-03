@@ -9,6 +9,10 @@
 
 int ext2fd; //file descriptor for disk image
 char buffer[BUFF_SIZE];
+int inode_count;
+int block_count;
+int blocks_bitmap;
+int inodes_bitmap;
 
 void superblock_summary(void)
 {
@@ -24,8 +28,10 @@ void superblock_summary(void)
   printf("SUPERBLOCK,");
   //block count
   printf("%d,", superblock_ptr->s_blocks_count);
+  block_count = superblock_ptr->s_blocks_count;
   //inode count
   printf("%d,", superblock_ptr->s_inodes_count);
+  inode_count = superblock_ptr->s_inodes_count;
   //block size
   printf("%d,", 1024 << superblock_ptr->s_log_block_size);
   //inode size
@@ -40,7 +46,32 @@ void superblock_summary(void)
 
 void group_summary(void) 
 {
-  exit(1);
+  int toRead = sizeof(struct ext2_group_desc);
+  toRead = pread(ext2fd, buffer, toRead, superblock_offset+sizeof(struct ext2_super_block));
+  if (toRead < 0)
+    {
+      fprintf(stderr, "hello");
+      // syscall error
+    }
+  struct ext2_group_desc* group_pointer = (struct ext2_group_desc*)buffer;
+  printf("GROUP,");
+  // group number
+  printf("%d,", 0);
+  // total number of blocks in the group
+  printf("%d,", block_count);
+  // total number of inodes in the group
+  printf("%d,", inode_count);
+  // total number of free blocks
+  printf("%d,", group_pointer->bg_free_blocks_count);
+  // total number of free inodes
+  printf("%d,", group_pointer->bg_free_inodes_count);
+  // block number of free block bitmap
+  printf("%d,", group_pointer->bg_block_bitmap);
+  blocks_bitmap = group_pointer->bg_block_bitmap;
+  // inode number of free block bitmap
+  printf("%d,", group_pointer->bg_inode_bitmap);
+  inodes_bitmap = group_pointer->bg_inode_bitmap;
+  printf("%d\n", group_pointer->bg_inode_table);
 }
 
 int main(int argc, char* argv[])
@@ -58,5 +89,6 @@ int main(int argc, char* argv[])
       exit(1);
     }
   superblock_summary();
+  group_summary();
   return 0;
 }
