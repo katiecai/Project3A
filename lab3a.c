@@ -25,7 +25,7 @@ void superblock_summary(void)
 
 void group_summary(void) 
 {
-  
+  exit(1);
 }
 
 int main(int argc, char* argv[])
