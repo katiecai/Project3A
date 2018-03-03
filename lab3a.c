@@ -3,7 +3,22 @@
 #include <fcntl.h>
 #include "ext2_fs.h"
 
+#define BUFF_SIZE 2048
+#define superblock_offset 1024
+
 int ext2fd; //file descriptor for disk image
+char buffer[BUFF_SIZE];
+
+void superblock_summary(void)
+{
+  size_t toRead = sizeof(ext2_super_block);
+  toRead = pread(ext2fd, buffer, toRead, superblock_offset);
+  if (toRead < 0)
+    {
+      //systemCallError
+    }
+}
+
 
 int main(int argc, char* argv[])
 {
