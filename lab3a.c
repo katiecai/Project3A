@@ -21,7 +21,21 @@ void superblock_summary(void)
     }
   struct ext2_super_block* superblock_ptr;
   superblock_ptr = (struct ext2_super_block*) buffer;
-  printf("block count: %d", superblock_ptr->s_blocks_count);
+  printf("SUPERBLOCK,");
+  //block count
+  printf("%d,", superblock_ptr->s_blocks_count);
+  //inode count
+  printf("%d,", superblock_ptr->s_inodes_count);
+  //block size
+  printf("%d,", 1024 << superblock_ptr->s_log_block_size);
+  //inode size
+  printf("%d,", superblock_ptr->s_inode_size);
+  //blocks per group
+  printf("%d,", superblock_ptr->s_blocks_per_group);
+  //inodes per group
+  printf("%d,", superblock_ptr->s_inodes_per_group);
+  //first non-reserved i-node
+  printf("%d\n", superblock_ptr->s_first_ino);
 }
 
 void group_summary(void) 
@@ -43,5 +57,6 @@ int main(int argc, char* argv[])
       fprintf(stderr, "Error opening disk image!");
       exit(1);
     }
+  superblock_summary();
   return 0;
 }
