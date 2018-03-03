@@ -20,6 +20,7 @@ void superblock_summary(void)
   ext2_super_block* superblock_ptr;
   superblock_ptr = buffer;
   printf("block count: %d", superblock_ptr->s_blocks_count);
+  exit(1)
 }
 
 void group_summary(void) 
