@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include "ext2_fs.h"
 
 #define BUFF_SIZE 2048
@@ -8,23 +9,69 @@
 
 int ext2fd; //file descriptor for disk image
 char buffer[BUFF_SIZE];
+int inode_count;
+int block_count;
+int blocks_bitmap;
+int inodes_bitmap;
 
 void superblock_summary(void)
 {
-  size_t toRead = sizeof(ext2_super_block);
+  int toRead = sizeof(struct ext2_super_block);
   toRead = pread(ext2fd, buffer, toRead, superblock_offset);
   if (toRead < 0)
     {
+      fprintf(stderr, "hello");
       //systemCallError
     }
-  ext2_super_block* superblock_ptr;
-  superblock_ptr = buffer;
-  printf("block count: %d", superblock_ptr->s_blocks_count);
+  struct ext2_super_block* superblock_ptr;
+  superblock_ptr = (struct ext2_super_block*) buffer;
+  printf("SUPERBLOCK,");
+  //block count
+  printf("%d,", superblock_ptr->s_blocks_count);
+  block_count = superblock_ptr->s_blocks_count;
+  //inode count
+  printf("%d,", superblock_ptr->s_inodes_count);
+  inode_count = superblock_ptr->s_inodes_count;
+  //block size
+  printf("%d,", 1024 << superblock_ptr->s_log_block_size);
+  //inode size
+  printf("%d,", superblock_ptr->s_inode_size);
+  //blocks per group
+  printf("%d,", superblock_ptr->s_blocks_per_group);
+  //inodes per group
+  printf("%d,", superblock_ptr->s_inodes_per_group);
+  //first non-reserved i-node
+  printf("%d\n", superblock_ptr->s_first_ino);
 }
 
 void group_summary(void) 
 {
-  
+  int toRead = sizeof(struct ext2_group_desc);
+  toRead = pread(ext2fd, buffer, toRead, superblock_offset+sizeof(struct ext2_super_block));
+  if (toRead < 0)
+    {
+      fprintf(stderr, "hello");
+      // syscall error
+    }
+  struct ext2_group_desc* group_pointer = (struct ext2_group_desc*)buffer;
+  printf("GROUP,");
+  // group number
+  printf("%d,", 0);
+  // total number of blocks in the group
+  printf("%d,", block_count);
+  // total number of inodes in the group
+  printf("%d,", inode_count);
+  // total number of free blocks
+  printf("%d,", group_pointer->bg_free_blocks_count);
+  // total number of free inodes
+  printf("%d,", group_pointer->bg_free_inodes_count);
+  // block number of free block bitmap
+  printf("%d,", group_pointer->bg_block_bitmap);
+  blocks_bitmap = group_pointer->bg_block_bitmap;
+  // inode number of free block bitmap
+  printf("%d,", group_pointer->bg_inode_bitmap);
+  inodes_bitmap = group_pointer->bg_inode_bitmap;
+  printf("%d," group_pointer->bg_inode_table);
 }
 
 int main(int argc, char* argv[])
@@ -41,5 +88,7 @@ int main(int argc, char* argv[])
       fprintf(stderr, "Error opening disk image!");
       exit(1);
     }
+  superblock_summary();
+  group_summary();
   return 0;
 }
