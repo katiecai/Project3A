@@ -78,6 +78,33 @@ void group_summary(void)
   printf("%d\n", group_pointer->bg_inode_table);
 }
 
+void free_blocks(void) 
+{
+  uint8_t* bitmap = malloc(block_size*sizeof(uint8_t));
+  int toRead = pread(ext2fd, bitmap, block_size, blocks_bitmap*block_size);
+  if (toRead < 0)
+    {
+      // syscall error
+    }
+
+  uint32_t i;
+  uint32_t bitmap_size = block_count;
+  int counter = 0;
+
+  for (i = 0; i < bitmap_size; i++)
+    {
+      uint8_t a_byte = bitmap[i/8];
+      if (!(a_byte & (1 << (i % 8))))
+	{
+	  counter++;
+	  printf("BFREE,");
+	  printf("%d\n", i);
+	}
+    }
+
+  printf("%d\n", counter);
+}
+
 void free_inodes(void)
 {
   uint8_t *bitmap = malloc(block_size);
@@ -122,5 +149,6 @@ int main(int argc, char* argv[])
   superblock_summary();
   group_summary();
   free_inodes();
+  free_blocks();
   return 0;
 }
