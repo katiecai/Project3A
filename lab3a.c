@@ -101,8 +101,7 @@ void free_blocks(void)
 	  printf("%d\n", i);
 	}
     }
-
-  printf("%d\n", counter);
+  free(bitmap);
 }
 
 void free_inodes(void)
@@ -148,7 +147,7 @@ int main(int argc, char* argv[])
     }
   superblock_summary();
   group_summary();
-  free_inodes();
   free_blocks();
+  free_inodes();
   return 0;
 }
