@@ -19,27 +19,26 @@ int inodes_bitmap;
 int inode_table;
 char justtime[20];
 
+void systemCallErr(char syscall[]);
+
 void superblock_summary(void)
 {
   int toRead = sizeof(struct ext2_super_block);
   toRead = pread(ext2fd, buffer, toRead, superblock_offset);
   if (toRead < 0)
-    {
-      fprintf(stderr, "hello");
-      //systemCallError
-    }
+    systemCallErr("pread");
   struct ext2_super_block* superblock_ptr;
   superblock_ptr = (struct ext2_super_block*) buffer;
   printf("SUPERBLOCK,");
   //block count
-  printf("%d,", superblock_ptr->s_blocks_count);
   block_count = superblock_ptr->s_blocks_count;
+  printf("%d,", block_count);
   //inode count
-  printf("%d,", superblock_ptr->s_inodes_count);
   inode_count = superblock_ptr->s_inodes_count;
+  printf("%d,", inode_count);
   //block size
-  printf("%d,", 1024 << superblock_ptr->s_log_block_size);
   block_size = 1024 << (superblock_ptr->s_log_block_size);
+  printf("%d,", block_size);
   //inode size
   printf("%d,", superblock_ptr->s_inode_size);
   //blocks per group
@@ -55,10 +54,7 @@ void group_summary(void)
   int toRead = sizeof(struct ext2_group_desc);
   toRead = pread(ext2fd, buffer, toRead, superblock_offset+sizeof(struct ext2_super_block));
   if (toRead < 0)
-    {
-      fprintf(stderr, "hello");
-      // syscall error
-    }
+    systemCallErr("pread");
   struct ext2_group_desc* group_pointer = (struct ext2_group_desc*)buffer;
   printf("GROUP,");
   // group number
@@ -72,11 +68,11 @@ void group_summary(void)
   // total number of free inodes
   printf("%d,", group_pointer->bg_free_inodes_count);
   // block number of free block bitmap
-  printf("%d,", group_pointer->bg_block_bitmap);
   blocks_bitmap = group_pointer->bg_block_bitmap;
+  printf("%d,", block_bitmap);
   // block number of the free inode bitmap
-  printf("%d,", group_pointer->bg_inode_bitmap);
   inodes_bitmap = group_pointer->bg_inode_bitmap;
+  printf("%d,", inodes_bitmap);
   // block number of the inode table
   printf("%d\n", group_pointer->bg_inode_table);
   inode_table = group_pointer->bg_inode_table;
@@ -87,9 +83,7 @@ void free_blocks(void)
   uint8_t* bitmap = malloc(block_size*sizeof(uint8_t));
   int toRead = pread(ext2fd, bitmap, block_size, blocks_bitmap*block_size);
   if (toRead < 0)
-    {
-      // syscall error
-    }
+    systemCallErr("pread");
 
   uint32_t i;
   uint32_t bitmap_size = block_count;
@@ -158,10 +152,7 @@ void inode_summary(void)
       int toRead = sizeof(struct ext2_inode);
       toRead = pread(ext2fd, buffer, toRead, (block_size * inode_table + (i * toRead)));
       if (toRead < 0)
-	{
-	  fprintf(stderr, "hello");
-	  //system call error
-	}
+	systemCallErr("pread");
       struct ext2_inode* inode_ptr = (struct ext2_inode*) buffer;
 
       if (inode_ptr->i_mode == 0 || inode_ptr->i_links_count == 0)
@@ -238,4 +229,11 @@ int main(int argc, char* argv[])
   free_inodes();
   inode_summary();
   return 0;
+}
+
+void systemCallErr(char syscall[])
+{
+  fprintf(stderr, "Error with %s system call\n", syscall);
+  fprintf(stderr, "%s\n", strerror(errno));
+  exit(1);
 }
