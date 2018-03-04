@@ -170,7 +170,11 @@ void inode_summary(void)
       printf("0%o,", fileMode);
       printf("%d,", inode_ptr->i_uid);
       printf("%d,", inode_ptr->i_gid);
-      printf("%d,\n", inode_ptr->i_links_count);
+      printf("%d,", inode_ptr->i_links_count);
+      printf("%d,", inode_ptr->i_mtime);
+      printf("%d,", inode_ptr->i_atime);
+      printf("%d,", inode_ptr->i_size);
+      printf("%d,", inode_ptr->i_blocks);
     }  
 }
 
