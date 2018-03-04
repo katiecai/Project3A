@@ -153,9 +153,11 @@ void inode_summary(void)
 	continue;
 
       printf("INODE,");
+      //inode number
       printf("%d,", i+1);
       int fileMode = inode_ptr->i_mode;
-      
+
+      //file type
       if (fileMode & 0x4000)
 	{
 	  printf("d,");
@@ -167,14 +169,34 @@ void inode_summary(void)
 	printf("s,");
       else
 	printf("?,");
+      
+      //mode number
       printf("0%o,", fileMode);
+      // owner
       printf("%d,", inode_ptr->i_uid);
+      // group
       printf("%d,", inode_ptr->i_gid);
+      // link count
       printf("%d,", inode_ptr->i_links_count);
+      // time of last inode change/when inode is created
+      printf("%d,", inode_ptr->i_ctime);
+      //modification time
       printf("%d,", inode_ptr->i_mtime);
+      //time of last access
       printf("%d,", inode_ptr->i_atime);
+      //file size
       printf("%d,", inode_ptr->i_size);
+      //number of blocks
       printf("%d,", inode_ptr->i_blocks);
+      //fifteen block addresses
+      int j;
+      for (j = 0; j < 15; j++)
+	{
+	  if (j != 14)
+	    printf("%d,", inode_ptr->i_block[j]);
+	  else
+	    printf("%d\n", inode_ptr->i_block[j]);
+	}
     }  
 }
 
