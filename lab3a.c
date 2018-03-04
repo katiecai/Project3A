@@ -174,10 +174,10 @@ void dir_data_block(char* block, struct ext2_inode* inode_ptr, int inode_num, in
     } 
 }
 
-void indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_num)
+void indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_num, int block_num)
 {
   int indirect_block[BUFF_SIZE];
-  int toRead = pread(ext2fd, indirect_block, block_size, superblock_offset + ((inode_ptr->i_block[12])-1) * block_size);
+  int toRead = pread(ext2fd, indirect_block, block_size, superblock_offset + (block_num-1) * block_size);
   if (toRead < 0)
     systemCallErr("pread");
   unsigned int i;
@@ -185,20 +185,40 @@ void indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_num)
     {
       if (indirect_block[i] == 0)
 	break;
-            dir_data_block(block, inode_ptr, inode_num, indirect_block[i]);
+        dir_data_block(block, inode_ptr, inode_num, indirect_block[i]);
     }
 }
-/*
-void double_indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_num)
+
+void double_indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_num, int block_num)
 {
-  int toRead = pread(ext2fd, block, block_size, superblock_offset + ((inode_ptr->i_block[13])-1) * block_size);
+  int double_indirect_block[BUFF_SIZE];
+  int toRead = pread(ext2fd, double_indirect_block, block_size, superblock_offset + (block_num-1) * block_size);
   if (toRead < 0)
     systemCallErr("pread");
   unsigned int i;
   for (i = 0; i < block_size/4; i++)
-    //    indirect_block(block, inode_ptr, inode_num);
+    {
+      if (double_indirect_block[i] == 0)
+	break;
+      indirect_block(block, inode_ptr, inode_num, double_indirect_block[i]);
+    }
 }
-*/
+
+void triple_indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_num, int block_num)
+{
+  int triple_indirect_block[BUFF_SIZE];
+  int toRead = pread(ext2fd, triple_indirect_block, block_size, superblock_offset + (block_num-1) * block_size);
+  if (toRead < 0)
+    systemCallErr("pread");
+  unsigned int i;
+  for (i = 0; i < block_size/4; i++)
+    {
+      if (triple_indirect_block[i] == 0)
+	break;
+      double_indirect_block(block, inode_ptr, inode_num, triple_indirect_block[i]);
+    }
+}
+
 void directory_entry(struct ext2_inode* inode_ptr, int inode_num)
 {
   char block[BUFF_SIZE];
@@ -212,10 +232,13 @@ void directory_entry(struct ext2_inode* inode_ptr, int inode_num)
     }
   //indirect block
     if (inode_ptr->i_block[12] != 0)
-      indirect_block(block, inode_ptr, inode_num);
+      indirect_block(block, inode_ptr, inode_num, inode_ptr->i_block[12]);
   //double indirect block
-
+    if (inode_ptr->i_block[13] != 0)
+      double_indirect_block(block, inode_ptr, inode_num, inode_ptr->i_block[13]);
   //triple indirect block
+    if (inode_ptr->i_block[14] != 0)
+      triple_indirect_block(block, inode_ptr, inode_num, inode_ptr->i_block[14]);
 }
 
 void inode_summary(void)
