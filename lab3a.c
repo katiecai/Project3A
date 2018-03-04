@@ -10,11 +10,12 @@
 
 int ext2fd; //file descriptor for disk image
 char buffer[BUFF_SIZE];
-int block_size;
-int inode_count;
+unsigned int block_size;
+unsigned int inode_count;
 int block_count;
 int blocks_bitmap;
 int inodes_bitmap;
+int inode_table;
 
 void superblock_summary(void)
 {
@@ -76,6 +77,7 @@ void group_summary(void)
   inodes_bitmap = group_pointer->bg_inode_bitmap;
   // block number of the inode table
   printf("%d\n", group_pointer->bg_inode_table);
+  inode_table = group_pointer->bg_inode_table;
 }
 
 void free_blocks(void) 
@@ -115,7 +117,8 @@ void free_inodes(void)
     }
   uint32_t bitmap_size = inode_count;
   uint32_t bit_num;
-  int inode_ctr = 0;
+  //first index of inode table is 1
+  int inode_ctr = 1;
   int free_inodes = 0;
 
 
@@ -130,6 +133,45 @@ void free_inodes(void)
       inode_ctr++;
     }  
   free(bitmap);
+}
+
+void inode_summary(void)
+{  
+  unsigned int i;
+  for (i = 0; i < inode_count; i++)
+    {
+      int toRead = sizeof(struct ext2_inode);
+      toRead = pread(ext2fd, buffer, toRead, (block_size * inode_table + (i * toRead)));
+      if (toRead < 0)
+	{
+	  fprintf(stderr, "hello");
+	  //system call error
+	}
+      struct ext2_inode* inode_ptr = (struct ext2_inode*) buffer;
+
+      if (inode_ptr->i_mode == 0 || inode_ptr->i_links_count == 0)
+	continue;
+
+      printf("INODE,");
+      printf("%d,", i+1);
+      int fileMode = inode_ptr->i_mode;
+      
+      if (fileMode & 0x4000)
+	{
+	  printf("d,");
+	  //deal with directories
+	}
+      else if (fileMode & 0x8000)
+	printf("f,");
+      else if (fileMode & 0xA000)
+	printf("s,");
+      else
+	printf("?,");
+      printf("0%o,", fileMode);
+      printf("%d,", inode_ptr->i_uid);
+      printf("%d,", inode_ptr->i_gid);
+      printf("%d,\n", inode_ptr->i_links_count);
+    }  
 }
 
 int main(int argc, char* argv[])
@@ -150,5 +192,6 @@ int main(int argc, char* argv[])
   group_summary();
   free_blocks();
   free_inodes();
+  inode_summary();
   return 0;
 }
