@@ -194,8 +194,8 @@ void inode_summary(void)
       // link count
       printf("%d,", inode_ptr->i_links_count);
       // time of last inode change/when inode is created
-      convert_time(inode_ptr->i_ctime, created_buffer);
-      printf("%d,", created_buffer);
+      convert_time(inode_ptr->i_ctime, create_buffer);
+      printf("%s,", create_buffer);
       // time of last modification
       convert_time(inode_ptr->i_mtime, modified_buffer);
       printf("%s,", modified_buffer);
