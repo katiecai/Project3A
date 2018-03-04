@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <time.h>
 #include "ext2_fs.h"
 
 #define BUFF_SIZE 2048
@@ -16,6 +17,7 @@ int block_count;
 int blocks_bitmap;
 int inodes_bitmap;
 int inode_table;
+char justtime[20];
 
 void superblock_summary(void)
 {
@@ -135,9 +137,22 @@ void free_inodes(void)
   free(bitmap);
 }
 
+void convert_time(uint32_t seconds, char* buffer) {
+  time_t rawtime = (time_t)seconds;
+  struct tm* info;
+
+  time(&rawtime);
+  info = gmtime(&rawtime);
+  strftime(buffer, 20, "%x %X", info);
+}
+
 void inode_summary(void)
 {  
   unsigned int i;
+  char create_buffer[20];
+  char modified_buffer[20];
+  char accessed_buffer[20];
+
   for (i = 0; i < inode_count; i++)
     {
       int toRead = sizeof(struct ext2_inode);
@@ -179,11 +194,14 @@ void inode_summary(void)
       // link count
       printf("%d,", inode_ptr->i_links_count);
       // time of last inode change/when inode is created
-      printf("%d,", inode_ptr->i_ctime);
-      //modification time
-      printf("%d,", inode_ptr->i_mtime);
+      convert_time(inode_ptr->i_ctime, created_buffer);
+      printf("%d,", created_buffer);
+      // time of last modification
+      convert_time(inode_ptr->i_mtime, modified_buffer);
+      printf("%s,", modified_buffer);
       //time of last access
-      printf("%d,", inode_ptr->i_atime);
+      convert_time(inode_ptr->i_atime, accessed_buffer);
+      printf("%s,", accessed_buffer);
       //file size
       printf("%d,", inode_ptr->i_size);
       //number of blocks
