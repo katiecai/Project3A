@@ -74,8 +74,9 @@ void group_summary(void)
   inodes_bitmap = group_pointer->bg_inode_bitmap;
   printf("%d,", inodes_bitmap);
   // block number of the inode table
-  printf("%d\n", group_pointer->bg_inode_table);
   inode_table = group_pointer->bg_inode_table;
+  printf("%d\n", inode_table);
+
 }
 
 void free_blocks(void) 
