@@ -241,19 +241,28 @@ void inode_summary(void)
       printf("%d,", i+1);
       int fileMode = inode_ptr->i_mode;
 
+      char file_type;
       //file type
       if (fileMode & 0x4000)
 	{
 	  printf("d,");
-	  directory_entry(inode_ptr, i+1);
-	  //deal with directories
+	  file_type = 'd';
 	}
       else if (fileMode & 0x8000)
-	printf("f,");
+	{
+	  printf("f,");
+	  file_type = 'f';
+	}
       else if (fileMode & 0xA000)
-	printf("s,");
+	{
+	  printf("s,");
+	  file_type = 's';
+	}
       else
-	printf("?,");
+	{
+	  printf("?,");
+	  file_type = '?';
+	}
       
       //mode number
       printf("%o,", fileMode);
@@ -284,6 +293,15 @@ void inode_summary(void)
 	    printf("%d,", inode_ptr->i_block[j]);
 	  else
 	    printf("%d\n", inode_ptr->i_block[j]);
+	}
+      if (file_type == 'd')
+	{
+	  directory_entry(inode_ptr, i+1);
+	  //scan indirect blocks
+	}
+      if (file_type == 'f')
+	{
+	  //scan indirect blocks
 	}
     }  
 }
