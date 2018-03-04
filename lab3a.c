@@ -84,7 +84,7 @@ void group_summary(void)
 void free_blocks(void) 
 {
   uint8_t* bitmap = malloc(block_size*sizeof(uint8_t));
-  int toRead = pread(ext2fd, bitmap, block_size, blocks_bitmap*block_size);
+  int toRead = pread(ext2fd, bitmap, block_size, superblock_offset+(blocks_bitmap-1)*block_size);
   if (toRead < 0)
     systemCallErr("pread");
 
@@ -109,7 +109,7 @@ void free_blocks(void)
 void free_inodes(void)
 {
   uint8_t *bitmap = malloc(block_size);
-  int toRead = pread(ext2fd, bitmap, block_size, block_size * (inodes_bitmap)); 
+  int toRead = pread(ext2fd, bitmap, block_size, superblock_offset+(inodes_bitmap-1)*block_size); 
   if (toRead < 0)
     {
       fprintf(stderr, "Error!");
@@ -130,7 +130,6 @@ void free_inodes(void)
 	  printf("IFREE,%d\n", inode_ctr);
 	  free_inodes++;
 	}
-      inode_ctr++;
     }  
   free(bitmap);
 }
