@@ -181,9 +181,11 @@ void indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_num)
   if (toRead < 0)
     systemCallErr("pread");
   unsigned int i;
-  for (i = 0; i < block_size/4; i++)
+  for (i = 0; i < block_size/4; i++) {
     dir_data_block(block, inode_ptr, inode_num, indirect_block[i]);
+  }
 }
+
 /*
 void double_indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_num)
 {
