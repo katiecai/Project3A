@@ -130,6 +130,7 @@ void free_inodes(void)
 	  printf("IFREE,%d\n", inode_ctr);
 	  free_inodes++;
 	}
+      inode_ctr++;
     }  
   free(bitmap);
 }
@@ -141,6 +142,44 @@ void convert_time(uint32_t seconds, char* buffer) {
   time(&rawtime);
   info = gmtime(&rawtime);
   strftime(buffer, 20, "%x %X", info);
+}
+
+
+void directory_entry(struct ext2_inode* inode_ptr, int inode_num)
+{
+  char block[BUFF_SIZE];
+  int i;
+  //direct blocks
+  for (i = 0; i < 12; i++)
+    {
+      if (inode_ptr->i_block[i] == 0)
+	return;
+      int toRead = pread(ext2fd, block, block_size, superblock_offset + ((inode_ptr->i_block[i])-1) * block_size);
+      if (toRead < 0)
+	systemCallErr("pread");
+      struct ext2_dir_entry* dir_ptr = (struct ext2_dir_entry*) block;
+      unsigned int position = 0;
+      while (position < inode_ptr->i_size)
+	{
+	  if (dir_ptr->inode > 0 && dir_ptr->name_len > 0)
+	    {
+	      printf("DIRENT,");
+	      printf("%d,", inode_num);
+	      printf("%d,", position);
+	      printf("%d,", dir_ptr->rec_len);
+	      int name_len = dir_ptr->name_len;
+	      printf("%d,", name_len);
+	      int j;
+	      for (j = 0; j < name_len; j++)
+		printf("%c", dir_ptr->name[j]);
+	      printf("\n");	      
+	    }
+	  else
+	    break;
+	  dir_ptr = (void*)dir_ptr + dir_ptr->rec_len;
+	  position = position + dir_ptr->rec_len;
+	}
+    }
 }
 
 void inode_summary(void)
@@ -170,7 +209,7 @@ void inode_summary(void)
       if (fileMode & 0x4000)
 	{
 	  printf("d,");
-	  
+	  directory_entry(inode_ptr, i+1);
 	  //deal with directories
 	}
       else if (fileMode & 0x8000)
@@ -212,7 +251,6 @@ void inode_summary(void)
 	}
     }  
 }
-
 int main(int argc, char* argv[])
 {
   if (argc != 2)
