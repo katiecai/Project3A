@@ -153,7 +153,7 @@ void inode_summary(void)
   for (i = 0; i < inode_count; i++)
     {
       int toRead = sizeof(struct ext2_inode);
-      toRead = pread(ext2fd, buffer, toRead, (block_size * inode_table + (i * toRead)));
+      toRead = pread(ext2fd, buffer, toRead, (superblock_offset + (block_size * (inode_table-1)) + (i * toRead)));
       if (toRead < 0)
 	systemCallErr("pread");
       struct ext2_inode* inode_ptr = (struct ext2_inode*) buffer;
