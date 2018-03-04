@@ -127,7 +127,7 @@ void free_inodes(void)
       uint8_t a_byte = bitmap[bit_num / 8];
       if (!(a_byte & (1 << (bit_num % 8))))
 	{
-	  printf("IFREE, %d\n", inode_ctr);
+	  printf("IFREE,%d\n", inode_ctr);
 	  free_inodes++;
 	}
       inode_ctr++;
@@ -171,6 +171,7 @@ void inode_summary(void)
       if (fileMode & 0x4000)
 	{
 	  printf("d,");
+	  
 	  //deal with directories
 	}
       else if (fileMode & 0x8000)
@@ -181,7 +182,7 @@ void inode_summary(void)
 	printf("?,");
       
       //mode number
-      printf("0%o,", fileMode);
+      printf("%o,", fileMode);
       // owner
       printf("%d,", inode_ptr->i_uid);
       // group
