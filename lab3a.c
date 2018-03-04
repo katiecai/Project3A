@@ -3,7 +3,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <errno.h>
 #include <time.h>
+#include <string.h>
 #include "ext2_fs.h"
 
 #define BUFF_SIZE 2048
@@ -69,7 +71,7 @@ void group_summary(void)
   printf("%d,", group_pointer->bg_free_inodes_count);
   // block number of free block bitmap
   blocks_bitmap = group_pointer->bg_block_bitmap;
-  printf("%d,", block_bitmap);
+  printf("%d,", blocks_bitmap);
   // block number of the free inode bitmap
   inodes_bitmap = group_pointer->bg_inode_bitmap;
   printf("%d,", inodes_bitmap);
@@ -89,6 +91,7 @@ void free_blocks(void)
   uint32_t i;
   uint32_t bitmap_size = block_count;
   int counter = 0;
+  int data_block_offset = (inode_count * sizeof(struct ext2_inode)/block_size) + inode_table;
 
   for (i = 0; i < bitmap_size; i++)
     {
@@ -97,7 +100,7 @@ void free_blocks(void)
 	{
 	  counter++;
 	  printf("BFREE,");
-	  printf("%d\n", i);
+	  printf("%d\n", i + data_block_offset);
 	}
     }
   free(bitmap);
