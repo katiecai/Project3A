@@ -91,7 +91,6 @@ void free_blocks(void)
   uint32_t i;
   uint32_t bitmap_size = block_count;
   int counter = 0;
-  int data_block_offset = (inode_count * sizeof(struct ext2_inode)/block_size) + inode_table;
 
   for (i = 0; i < bitmap_size; i++)
     {
@@ -100,7 +99,7 @@ void free_blocks(void)
 	{
 	  counter++;
 	  printf("BFREE,");
-	  printf("%d\n", i + data_block_offset);
+	  printf("%d\n", i+1);
 	}
     }
   free(bitmap);
@@ -114,6 +113,7 @@ void free_inodes(void)
     {
       fprintf(stderr, "Error!");
       // system call error function
+      systemCallErr("pread");
     }
   uint32_t bitmap_size = inode_count;
   uint32_t bit_num;
@@ -157,51 +157,66 @@ void dir_data_block(char* block, struct ext2_inode* inode_ptr, int inode_num, in
       if (dir_ptr->inode > 0 && dir_ptr->name_len > 0)
 	{
 	  printf("DIRENT,");
+	  //parent inode number
 	  printf("%d,", inode_num);
+	  //logical byte offset, position
 	  printf("%d,", position);
+	  //inode number
+	  printf("%d,", dir_ptr->inode);
+	  //length of entry
 	  printf("%d,", dir_ptr->rec_len);
+	  //length of name
 	  int name_len = dir_ptr->name_len;
 	  printf("%d,", name_len);
 	  int j;
+	  char quote = '\'';
+	  //name
+	  printf("%c", quote);
 	  for (j = 0; j < name_len; j++)
 	    printf("%c", dir_ptr->name[j]);
+	  printf("%c", quote);
 	  printf("\n");	      
 	}
       else
 	break;
-      dir_ptr = (void*)dir_ptr + dir_ptr->rec_len;
       position = position + dir_ptr->rec_len;
+      dir_ptr = (void*)dir_ptr + dir_ptr->rec_len;
     } 
 }
 
-void indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_num, int block_num, char file_type)
+void indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_num, int block_num, char file_type, int logical_offset)
 {
   int indirect_block[BUFF_SIZE];
   int toRead = pread(ext2fd, indirect_block, block_size, superblock_offset + (block_num-1) * block_size);
   if (toRead < 0)
     systemCallErr("pread");
-  unsigned int i;
-  for (i = 0; i < block_size/4; i++)
+  unsigned int j = 0;
+  while (j < block_size/4)
     {
-      if (indirect_block[i] == 0)
-	continue;
+	if (indirect_block[j] == 0)
+	{
+	  j++;
+	  continue;
+	}
+
       if (file_type == 'd')
-	dir_data_block(block, inode_ptr, inode_num, indirect_block[i]);
+	dir_data_block(block, inode_ptr, inode_num, indirect_block[j]);
       printf("INDIRECT,");
       //inode number of owning file
       printf("%d,", inode_num);
       //level of indirection
       printf("1,");
       //logical block offset
-      printf("%d,", 11+i);
+      printf("%d,", logical_offset+j);
       //block being scanned
       printf("%d,", block_num);
       //referenced block
-      printf("%d\n", indirect_block[i]);
-    }
+      printf("%d\n", indirect_block[j]);
+      j++;
+      }
 }
 
-void double_indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_num, int block_num, char file_type)
+void double_indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_num, int block_num, char file_type, int logical_offset)
 {
   int double_indirect_block[BUFF_SIZE];
   int toRead = pread(ext2fd, double_indirect_block, block_size, superblock_offset + (block_num-1) * block_size);
@@ -212,14 +227,14 @@ void double_indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_
     {
       if (double_indirect_block[i] == 0)
 	continue;
-      indirect_block(block, inode_ptr, inode_num, double_indirect_block[i], file_type);
+      indirect_block(block, inode_ptr, inode_num, double_indirect_block[i], file_type, i+logical_offset);
       printf("INDIRECT,");
       //inode number of owning file
       printf("%d,", inode_num);
       //level of indirection
       printf("2,");
       //logical block offset
-      printf("%d,", 256+11+i);
+      printf("%d,", logical_offset+i);
       //block being scanned
       printf("%d,", block_num);
       //referenced block
@@ -228,7 +243,7 @@ void double_indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_
     }
 }
 
-void triple_indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_num, int block_num, char file_type)
+void triple_indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_num, int block_num, char file_type, int logical_offset)
 {
   int triple_indirect_block[BUFF_SIZE];
   int toRead = pread(ext2fd, triple_indirect_block, block_size, superblock_offset + (block_num-1) * block_size);
@@ -239,14 +254,14 @@ void triple_indirect_block(char* block, struct ext2_inode* inode_ptr, int inode_
     {
       if (triple_indirect_block[i] == 0)
 	continue;
-      double_indirect_block(block, inode_ptr, inode_num, triple_indirect_block[i], file_type);
+      double_indirect_block(block, inode_ptr, inode_num, triple_indirect_block[i], file_type, i+logical_offset);
       printf("INDIRECT,");
       //inode number of owning file
       printf("%d,", inode_num);
       //level of indirection
       printf("3,");
       //logical block offset
-      printf("%d,", (256*256)+11+i);
+      printf("%d,", logical_offset + i);
       //block being scanned
       printf("%d,", block_num);
       //referenced block
@@ -271,13 +286,13 @@ void directory_entry(struct ext2_inode* inode_ptr, int inode_num, char file_type
     }
   //indirect block
   if (inode_ptr->i_block[12] != 0)
-    indirect_block(block, inode_ptr, inode_num, inode_ptr->i_block[12], file_type);
+    indirect_block(block, inode_ptr, inode_num, inode_ptr->i_block[12], file_type, 12);
   //double indirect block
   if (inode_ptr->i_block[13] != 0)
-    double_indirect_block(block, inode_ptr, inode_num, inode_ptr->i_block[13], file_type);
+    double_indirect_block(block, inode_ptr, inode_num, inode_ptr->i_block[13], file_type, 12+256);
   //triple indirect block
   if (inode_ptr->i_block[14] != 0)
-    triple_indirect_block(block, inode_ptr, inode_num, inode_ptr->i_block[14], file_type);
+    triple_indirect_block(block, inode_ptr, inode_num, inode_ptr->i_block[14], file_type, 12 + (256 * 256)+256);
 }
 
 void inode_summary(void)
@@ -327,7 +342,7 @@ void inode_summary(void)
 	}
       
       //mode number
-      printf("%o,", fileMode);
+      printf("%o,", inode_ptr->i_mode & 4095);
       // owner
       printf("%d,", inode_ptr->i_uid);
       // group
@@ -356,14 +371,9 @@ void inode_summary(void)
 	  else
 	    printf("%d\n", inode_ptr->i_block[j]);
 	}
-      if (file_type == 'd')
+      if (file_type == 'd' || file_type == 'f')
 	{
 	  directory_entry(inode_ptr, i+1, file_type);
-	  //scan indirect blocks
-	}
-      if (file_type == 'f')
-	{
-	  //scan indirect blocks
 	}
     }  
 }
